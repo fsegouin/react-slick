@@ -499,7 +499,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      return false;
 	    }
 
-	    if (this.props.verticalSwiping && this.state.swiping && verticalSwipeLength > 4) {
+	    if (!this.props.verticalSwiping && !this.state.swiping && verticalSwipeLength > 4) {
 	      this.state.scrolling = true;
 	      return false;
 	    }
