@@ -14,6 +14,8 @@ var initialState = {
     // sliding: false,
     // slideOffset: 0,
     swipeLeft: null,
+    scrolling: false,
+    swiping: false,
     touchObject: {
       startX: 0,
       startY: 0,

@@ -64,14 +64,14 @@ var EventHandlers = {
     });
   },
   swipeMove: function (e) {
-    if (!this.state.dragging) {
+    if (!this.state.dragging || this.state.scrolling) {
       return;
     }
     if (this.state.animating) {
       return;
     }
     var swipeLeft;
-    var curLeft, positionOffset;
+    var curLeft, positionOffset, verticalSwipeLength;
     var touchObject = this.state.touchObject;
 
     curLeft = getTrackLeft(assign({
@@ -81,13 +81,18 @@ var EventHandlers = {
     touchObject.curX = (e.touches) ? e.touches[0].pageX : e.clientX;
     touchObject.curY = (e.touches) ? e.touches[0].pageY : e.clientY;
     touchObject.swipeLength = Math.round(Math.sqrt(Math.pow(touchObject.curX - touchObject.startX, 2)));
+    verticalSwipeLength = Math.round(Math.sqrt(Math.pow(touchObject.curY - touchObject.startY, 2)));
 
     positionOffset = (this.props.rtl === false ? 1 : -1) * (touchObject.curX > touchObject.startX ? 1 : -1);
+    if (this.props.verticalSwiping === true) {
+      positionOffset = touchObject.curY > touchObject.startY ? 1 : -1;
+    }
 
     var currentSlide = this.state.currentSlide;
     var dotCount = Math.ceil(this.state.slideCount / this.props.slidesToScroll);
     var swipeDirection = this.swipeDirection(this.state.touchObject);
     var touchSwipeLength = touchObject.swipeLength;
+    touchObject.edgeHit = false;
 
     if (this.props.infinite === false) {
       if ((currentSlide === 0 && swipeDirection === 'right') || (currentSlide + 1 >= dotCount && swipeDirection === 'left')) {
@@ -98,6 +103,35 @@ var EventHandlers = {
           this.setState({ edgeDragged: true });
         }
       }
+    }
+
+    if (this.props.vertical === false) {
+        swipeLeft = curLeft + touchSwipeLength * positionOffset;
+    } else {
+        var slickList = ReactDOM.findDOMNode(this.refs.list);
+        slickList.style.height = slickList.querySelector(selector).offsetHeight + 'px';
+        swipeLeft = curLeft + (touchSwipeLength * (_slickList.style.height / this.state.listWidth)) * positionOffset;
+    }
+    if (this.props.verticalSwiping === true) {
+        swipeLeft = curLeft + touchSwipeLength * positionOffset;
+    }
+
+    if (this.props.fade === true || this.props.touchMove === false) {
+        return false;
+    }
+
+    if (this.state.animating === true) {
+        swipeLeft = null;
+        return false;
+    }
+
+    if (this.props.verticalSwiping && this.state.swiping && verticalSwipeLength > 4) {
+      this.state.scrolling = true;
+      return false;
+    }
+
+    if (this.props.verticalSwiping === true) {
+      touchObject.swipeLength = verticalSwipeLength;
     }
 
     if (this.state.swiped === false && this.props.swipeEvent) {
@@ -115,12 +149,17 @@ var EventHandlers = {
     if (Math.abs(touchObject.curX - touchObject.startX) < Math.abs(touchObject.curY - touchObject.startY) * 0.8)
       { return; }
     if (touchObject.swipeLength > 4) {
+      this.state.swiping = true;
       e.preventDefault();
     }
   },
   swipeEnd: function (e) {
     if (!this.state.dragging) {
       return;
+    }
+    if (this.state.scrolling) {
+      this.state.scrolling = false;
+      return false;
     }
     var touchObject = this.state.touchObject;
     var minSwipe = this.state.listWidth/this.props.touchThreshold;
@@ -131,6 +170,7 @@ var EventHandlers = {
       dragging: false,
       edgeDragged: false,
       swiped: false,
+      swiping: false,
       swipeLeft: null,
       touchObject: {}
     });
@@ -138,7 +178,7 @@ var EventHandlers = {
     if (!touchObject.swipeLength) {
       return;
     }
-    if (touchObject.swipeLength > minSwipe) {
+    if (touchObject.swipeLength > minSwipe && (swipeDirection === 'left' || swipeDirection === 'right')) {
       e.preventDefault();
       if (swipeDirection === 'left') {
         this.slideHandler(this.state.currentSlide + this.props.slidesToScroll);

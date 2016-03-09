@@ -17,6 +17,8 @@ var SingleItem = React.createClass({
   },
   render: function () {
     var settings = {
+      vertical: false,
+      verticalSwiping: false,
       dots: true,
       infinite: true,
       speed: 500,
